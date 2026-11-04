@@ -3,7 +3,7 @@
 Este é um projeto Full-Stack desenvolvido para resolver um problema real de gestão e organização financeira do grupo de jovens da minha igreja, substituindo processos manuais por um fluxo automatizado.
 
 🔗 **Links do Projeto em Produção:**
-* **Site de Inscrição (Público):** [https://retiroumaqq2027.netlify.app](https://retiroumagg2027.netlify.app/)
+* **Site de Inscrição (Público):** [https://retiroumaqq2027.netlify.app](https://retiroumagg2027.netlify.app)
 * **Painel de Controle (Admin):** [https://paineldecontroleretiro.netlify.app](https://paineldecontroleretiro.netlify.app)
 
 ## 🎯 O Problema de Negócio
