@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Financeiro - UMAGG</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        :root {
+            --azul-escuro: #0B192C;
+            --vermelho: #C1121F;
+            --branco: #ffffff;
+            --fundo: #f4f6f9;
+        }
+        body { 
+            font-family: 'Montserrat', sans-serif; 
+            background-color: var(--fundo); 
+            margin: 0; 
+            padding: 40px 20px; 
+            color: #333;
+        }
+        .container { 
+            max-width: 1100px; 
+            margin: 0 auto; 
+            background: var(--branco); 
+            padding: 40px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+        }
+        .header-admin { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            border-bottom: 2px solid #e2e8f0; 
+            padding-bottom: 20px; 
+            margin-bottom: 30px; 
+        }
+        .header-admin h1 { color: var(--azul-escuro); margin: 0; font-weight: 700; }
+        .header-admin img { height: 50px; }
+        
+        /* A Mágica para o celular acontece aqui: a cápsula responsiva */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto; /* Cria a barra de rolagem horizontal só na tabela */
+            -webkit-overflow-scrolling: touch; /* Deixa o deslizar do dedo mais suave no iPhone/Android */
+            border-radius: 8px;
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: separate; 
+            border-spacing: 0; 
+            min-width: 800px; /* Força a tabela a ter um tamanho mínimo, evitando que o texto esprema */
+        }
+        th, td { padding: 16px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { 
+            background-color: #f8fafc; color: var(--azul-escuro); 
+            font-weight: 700; text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px; 
+            white-space: nowrap; /* Impede o título da coluna de quebrar linha */
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: #f8fafc; }
+        
+        select { 
+            padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; 
+            font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 0.9em;
+            cursor: pointer; outline: none; transition: 0.2s;
+        }
+        select:focus { border-color: var(--azul-escuro); }
+        
+        .status-pendente { background-color: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+        .status-parte { background-color: #fef08a; color: #854d0e; border-color: #fde047; }
+        .status-pago { background-color: #d1fae5; color: #047857; border-color: #6ee7b7; }
+
+        /* Ajustes específicos para telas de celular */
+        @media (max-width: 768px) {
+            body { padding: 15px 10px; }
+            .container { padding: 20px 15px; }
+            .header-admin { 
+                flex-direction: column; /* Coloca a logo embaixo do título */
+                text-align: center; 
+                gap: 15px; 
+            }
+            .header-admin h1 { font-size: 1.5em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-admin">
+            <h1>Controle Financeiro</h1>
+            <img src="logo.png" alt="UMAGG">
+        </div>
+
+        <!-- Colocamos a tabela dentro da div responsiva -->
+        <div class="table-responsive">
+            <table id="tabela-inscricoes">
+                <thead>
+                    <tr>
+                        <th>Jovem</th>
+                        <th>WhatsApp</th>
+                        <th>Pagamento</th>
+                        <th>Detalhes</th>
+                        <th>Status Financeiro</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-corpo">
+                    <!-- Preenchido pelo Firebase -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // --- ATENÇÃO: COLE A SUA CONFIGURAÇÃO DO FIREBASE AQUI NOVAMENTE ---
+        const firebaseConfig = {
+  apiKey: "AIzaSyAzxt4hPpnLCCMnlUzh50QLRZMB4FhGDI8",
+  authDomain: "retiro-igreja-2831a.firebaseapp.com",
+  databaseURL: "https://retiro-igreja-2831a-default-rtdb.firebaseio.com",
+  projectId: "retiro-igreja-2831a",
+  storageBucket: "retiro-igreja-2831a.firebasestorage.app",
+  messagingSenderId: "724370266575",
+  appId: "1:724370266575:web:063800679007398ed71aba",
+  measurementId: "G-VBGNBMNNY1"
+};
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const tbody = document.getElementById('tabela-corpo');
+
+        db.collection("inscricoes_torre_forte").orderBy("dataCadastro", "desc").onSnapshot((querySnapshot) => {
+            tbody.innerHTML = ""; 
+            querySnapshot.forEach((doc) => {
+                const dados = doc.data();
+                const tr = document.createElement('tr');
+                
+                let tipoPagamento = dados.formaPagamento.replace('pix_', 'PIX ').replace('cartao', 'Cartão').toUpperCase();
+                
+                let corSelect = 'status-pendente';
+                if(dados.status === 'Pago Parte') corSelect = 'status-parte';
+                if(dados.status === 'Pago Total') corSelect = 'status-pago';
+
+                tr.innerHTML = `
+                    <td style="white-space: nowrap;"><strong>${dados.nome}</strong></td>
+                    <td>${dados.telefone}</td>
+                    <td style="white-space: nowrap;">${tipoPagamento}</td>
+                    <td style="white-space: nowrap;">${dados.detalhes || 'À vista'}</td>
+                    <td>
+                        <select onchange="atualizarStatus('${doc.id}', this)" class="${corSelect}">
+                            <option value="Pendente" ${dados.status === 'Pendente' ? 'selected' : ''}>⏳ Pendente</option>
+                            <option value="Pago Parte" ${dados.status === 'Pago Parte' ? 'selected' : ''}>🪙 Pagou Parcela</option>
+                            <option value="Pago Total" ${dados.status === 'Pago Total' ? 'selected' : ''}>✅ Pago Total</option>
+                        </select>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        });
+
+        window.atualizarStatus = function(id, selectElement) {
+            const novoStatus = selectElement.value;
+            
+            selectElement.className = '';
+            if(novoStatus === 'Pendente') selectElement.classList.add('status-pendente');
+            if(novoStatus === 'Pago Parte') selectElement.classList.add('status-parte');
+            if(novoStatus === 'Pago Total') selectElement.classList.add('status-pago');
+
+            db.collection("inscricoes_torre_forte").doc(id).update({
+                status: novoStatus
+            }).catch(() => {
+                alert("Erro ao sincronizar com o banco de dados.");
+            });
+        }
+    </script>
+</body>
+</html>
